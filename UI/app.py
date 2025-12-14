@@ -537,10 +537,15 @@ def fetch_weather_news(city_keyword: str):
         return {"articles": [], "error": f"Exception: {e}"}
 
 # ------------------------------------------------------------
-# Alert / Warning Logic
+# Alert / Warning Logic (Past Week Only)
 # ------------------------------------------------------------
-def get_alert_status(current_row, news_articles=None):
-    """Decide alert severity + text based on metrics and news"""
+def get_alert_status(current_row, location_data_week, news_articles=None):
+    """
+    Decide alert severity + text based on:
+    - Current metrics
+    - Past week's weather patterns
+    - Recent news (last 7 days only)
+    """
     temp = current_row["temperature"]
     rain = current_row["rainfall"]
     aqi = current_row["air_quality"]
@@ -553,54 +558,95 @@ def get_alert_status(current_row, news_articles=None):
     def bump_severity(current, new_level):
         return max(current, new_level, key=lambda s: sev_order.index(s))
 
-    # Temperature conditions
+    # Analyze past week patterns
+    week_avg_temp = location_data_week['temperature'].mean()
+    week_max_temp = location_data_week['temperature'].max()
+    week_total_rain = location_data_week['rainfall'].sum()
+    week_avg_aqi = location_data_week['air_quality'].mean()
+    
+    # Current Temperature conditions
     if temp >= 42:
-        messages.append(f"Heatwave conditions detected (Temperature: {temp}°C).")
+        messages.append(f"🔥 Heatwave conditions detected (Current: {temp}°C, Week Avg: {week_avg_temp:.1f}°C).")
         severity = "high"
         icon = "🔥"
     elif temp >= 38:
-        messages.append(f"High temperature alert (Temperature: {temp}°C).")
+        messages.append(f"☀️ High temperature alert (Current: {temp}°C).")
         severity = bump_severity(severity, "medium")
         if icon == "🟢":
             icon = "☀️"
     elif temp <= 5:
-        messages.append(f"Very low temperature alert (Temperature: {temp}°C).")
+        messages.append(f"❄️ Very low temperature alert (Current: {temp}°C).")
         severity = bump_severity(severity, "medium")
         if icon == "🟢":
             icon = "❄️"
+    
+    # Check for unusual temperature changes in past week
+    if week_max_temp - temp > 10:
+        messages.append(f"⚠️ Significant temperature drop from week's peak ({week_max_temp:.1f}°C to {temp:.1f}°C).")
+        severity = bump_severity(severity, "medium")
 
-    # Rainfall / storm conditions
+    # Current Rainfall / storm conditions
     if rain >= 80:
-        messages.append(f"Extreme rainfall – cyclone-like / severe storm risk (Rainfall: {rain} mm).")
+        messages.append(f"🌀 Extreme rainfall – cyclone-like / severe storm risk (Current: {rain} mm, Week Total: {week_total_rain:.1f} mm).")
         severity = "high"
         icon = "🌀"
     elif rain >= 30:
-        messages.append(f"Heavy rainfall – storm / flooding risk (Rainfall: {rain} mm).")
+        messages.append(f"⛈️ Heavy rainfall – storm / flooding risk (Current: {rain} mm).")
         severity = bump_severity(severity, "medium")
         if icon == "🟢":
             icon = "⛈️"
+    
+    # Check weekly rainfall accumulation
+    if week_total_rain >= 200:
+        messages.append(f"💧 Very high weekly rainfall accumulation ({week_total_rain:.1f} mm) - flood risk remains elevated.")
+        severity = bump_severity(severity, "medium")
 
-    # AQI conditions
+    # Current AQI conditions
     if aqi >= 300:
-        messages.append(f"Hazardous air quality (AQI: {aqi}). Limit outdoor activity.")
+        messages.append(f"☠️ Hazardous air quality (Current AQI: {aqi}, Week Avg: {week_avg_aqi:.0f}). Limit outdoor activity.")
         severity = "high"
         if icon == "🟢":
             icon = "☠️"
     elif aqi >= 200:
-        messages.append(f"Very poor air quality (AQI: {aqi}). Wear masks outdoors.")
+        messages.append(f"😷 Very poor air quality (Current AQI: {aqi}). Wear masks outdoors.")
         severity = bump_severity(severity, "medium")
         if icon == "🟢":
             icon = "😷"
 
-    # News-driven alerts
+    # News-driven alerts (ONLY from past 7 days)
     if news_articles:
-        severe_keywords_high = ["cyclone", "landslide", "red alert", "severe storm"]
-        severe_keywords_med = ["flood", "flooding", "heatwave", "cold wave", "heavy rain", "orange alert"]
+        from datetime import datetime, timezone
+        import dateutil.parser
+        
+        # Filter news from past 7 days only
+        recent_articles = []
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=7)
+        
+        for art in news_articles:
+            try:
+                pub_timestamp = art.get('pub_timestamp')
+                if pub_timestamp and pd.notna(pub_timestamp):
+                    # Make timestamp timezone-aware if it isn't
+                    if pub_timestamp.tzinfo is None:
+                        pub_timestamp = pub_timestamp.tz_localize('UTC')
+                    
+                    if pub_timestamp >= cutoff_date:
+                        recent_articles.append(art)
+            except:
+                # If parsing fails, skip this article
+                continue
+        
+        # Only check recent articles (past week)
+        severe_keywords_high = ["cyclone", "landslide", "red alert", "severe storm", "emergency", "disaster"]
+        severe_keywords_med = ["flood", "flooding", "heatwave", "cold wave", "heavy rain", "orange alert", "yellow alert"]
         flagged_article = None
         flagged_level = None
 
-        for art in news_articles:
-            text = (art["title"] + " " + (art["description"] or "")).lower()
+        for art in recent_articles:
+            title_clean = art.get("title", "")
+            desc_clean = art.get("description", "")
+            text = (title_clean + " " + desc_clean).lower()
+            
             if any(k in text for k in severe_keywords_high):
                 flagged_article = art
                 flagged_level = "high"
@@ -610,19 +656,25 @@ def get_alert_status(current_row, news_articles=None):
                 flagged_level = "medium"
 
         if flagged_article:
+            import re
+            import html
+            
+            # Clean the title
+            title_clean = html.unescape(re.sub('<[^<]+?>', '', flagged_article.get('title', '')))
+            
             if flagged_level == "high":
                 severity = "high"
+                messages.append(f"🚨 RECENT NEWS ALERT: {title_clean}")
             else:
                 severity = bump_severity(severity, "medium")
+                messages.append(f"📰 Recent weather advisory: {title_clean}")
 
             if icon == "🟢":
                 icon = "📰"
 
-            messages.append(f"News alert: {flagged_article['title']}")
-
     # If no issues at all
     if not messages:
-        messages = ["Conditions look stable. No major weather or air quality alerts for now."]
+        messages = [f"✅ Conditions look stable. No major alerts in the past week. (Avg Temp: {week_avg_temp:.1f}°C, Total Rain: {week_total_rain:.1f}mm, Avg AQI: {week_avg_aqi:.0f})"]
         severity = "normal"
         icon = "🟢"
 
@@ -639,8 +691,8 @@ def get_alert_status(current_row, news_articles=None):
 
     return icon, messages, bg, border, severity
 
-def render_alert_bar(current_row, location_name, news_articles=None):
-    icon, messages, bg, border, severity = get_alert_status(current_row, news_articles=news_articles)
+def render_alert_bar(current_row, location_name, location_data_week, news_articles=None):
+    icon, messages, bg, border, severity = get_alert_status(current_row, location_data_week, news_articles=news_articles)
     msg_html = "<br>".join(messages)
     
     severity_class = "high-severity" if severity == "high" else ""
@@ -650,7 +702,7 @@ def render_alert_bar(current_row, location_name, news_articles=None):
         <div class="alert-bar {severity_class}" style="background:{bg}; border:1px solid {border};">
             <div class="alert-icon">{icon}</div>
             <div class="alert-text">
-                <b>Alert Status for {location_name}</b><br>
+                <b>Alert Status for {location_name} (Past 7 Days Analysis)</b><br>
                 {msg_html}
             </div>
         </div>
@@ -799,6 +851,10 @@ loc_data_all = data[data["location"] == selected_location].sort_values("date")
 current_data = loc_data_all.iloc[-1]
 prev_row = loc_data_all.iloc[-2]
 
+# Get past week data for alert analysis
+week_ago = loc_data_all['date'].max() - timedelta(days=7)
+loc_data_week = loc_data_all[loc_data_all['date'] >= week_ago]
+
 # Fetch news for selected city
 city_keyword = extract_city_keyword(selected_location)
 news_data = fetch_weather_news(city_keyword)
@@ -806,9 +862,9 @@ weather_news = news_data["articles"]
 news_error = news_data["error"]
 
 # ============================================================
-# ALERT BAR (Top) – now also uses news
+# ALERT BAR (Top) – now uses past week data + recent news only
 # ============================================================
-render_alert_bar(current_data, selected_location, news_articles=weather_news)
+render_alert_bar(current_data, selected_location, loc_data_week, news_articles=weather_news)
 
 # ============================================================
 # Layout Tabs
