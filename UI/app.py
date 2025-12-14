@@ -600,9 +600,24 @@ selected_parameter = st.sidebar.selectbox(
     ['temperature', 'air_quality', 'rainfall']
 )
 
+# Set default to current month
+from datetime import date as dt_date
+today = dt_date.today()
+first_day_of_month = dt_date(today.year, today.month, 1)
+if today.month == 12:
+    last_day_of_month = dt_date(today.year + 1, 1, 1) - timedelta(days=1)
+else:
+    last_day_of_month = dt_date(today.year, today.month + 1, 1) - timedelta(days=1)
+
+# Ensure dates are within available data range
+default_start = max(pd.Timestamp(first_day_of_month), data['date'].min())
+default_end = min(pd.Timestamp(last_day_of_month), data['date'].max())
+
 date_range = st.sidebar.date_input(
     "Select Date Range",
-    [data['date'].min(), data['date'].max()]
+    [default_start.date(), default_end.date()],
+    min_value=data['date'].min().date(),
+    max_value=data['date'].max().date()
 )
 
 forecast_days = st.sidebar.slider(
@@ -662,13 +677,33 @@ with tab_overview:
 
     with col_map:
         st.subheader("Geographic Visualization")
+        
+        # Map type selector
+        map_type = st.radio(
+            "Map Style",
+            ["Satellite", "Street View"],
+            horizontal=True,
+            key="map_type_selector"
+        )
+        
         st.markdown("<div class='card'>", unsafe_allow_html=True)
 
-        m = folium.Map(
-            location=[20.5937, 78.9629],
-            zoom_start=4,
-            tiles="CartoDB dark_matter"  # Dark theme map
-        )
+        # Create map based on selection
+        if map_type == "Satellite":
+            # Satellite view using ESRI World Imagery
+            m = folium.Map(
+                location=[20.5937, 78.9629],
+                zoom_start=4,
+                tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+                attr="Esri World Imagery"
+            )
+        else:
+            # Light street view
+            m = folium.Map(
+                location=[20.5937, 78.9629],
+                zoom_start=4,
+                tiles="OpenStreetMap"
+            )
 
         latest_per_loc = data.sort_values("date").groupby("location").tail(1)
         for _, row in latest_per_loc.iterrows():
