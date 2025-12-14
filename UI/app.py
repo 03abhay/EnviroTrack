@@ -219,53 +219,195 @@ st.markdown(
 def load_sample_data():
     dates = pd.date_range(start='2023-01-01', end='2024-01-01', freq='D')
     locations = [
-        # Northern Region
-        {'name': 'New Delhi (Delhi)', 'lat': 28.6139, 'lon': 77.2090},
-        {'name': 'Chandigarh (Haryana & Punjab)', 'lat': 30.7333, 'lon': 76.7794},
-        {'name': 'Shimla (Himachal Pradesh)', 'lat': 31.1048, 'lon': 77.1734},
+        # Jammu & Kashmir (including PoK - Muzaffarabad as integral part)
         {'name': 'Srinagar (Jammu & Kashmir)', 'lat': 34.0837, 'lon': 74.7973},
+        {'name': 'Jammu (Jammu & Kashmir)', 'lat': 32.7266, 'lon': 74.8570},
+        {'name': 'Anantnag (Jammu & Kashmir)', 'lat': 33.7310, 'lon': 75.1484},
+        {'name': 'Muzaffarabad (Jammu & Kashmir - PoK)', 'lat': 34.3700, 'lon': 73.4711},
+        
+        # Ladakh (including Aksai Chin areas)
         {'name': 'Leh (Ladakh)', 'lat': 34.1526, 'lon': 77.5771},
+        {'name': 'Kargil (Ladakh)', 'lat': 34.5539, 'lon': 76.1313},
+        {'name': 'Aksai Chin Region (Ladakh)', 'lat': 35.3000, 'lon': 79.0000},
         
-        # Central Region
-        {'name': 'Lucknow (Uttar Pradesh)', 'lat': 26.8467, 'lon': 80.9462},
+        # Himachal Pradesh
+        {'name': 'Shimla (Himachal Pradesh)', 'lat': 31.1048, 'lon': 77.1734},
+        {'name': 'Dharamshala (Himachal Pradesh)', 'lat': 32.2190, 'lon': 76.3234},
+        {'name': 'Manali (Himachal Pradesh)', 'lat': 32.2396, 'lon': 77.1887},
+        
+        # Punjab
+        {'name': 'Chandigarh (Punjab & Haryana)', 'lat': 30.7333, 'lon': 76.7794},
+        {'name': 'Amritsar (Punjab)', 'lat': 31.6340, 'lon': 74.8723},
+        {'name': 'Ludhiana (Punjab)', 'lat': 30.9010, 'lon': 75.8573},
+        {'name': 'Patiala (Punjab)', 'lat': 30.3398, 'lon': 76.3869},
+        
+        # Haryana
+        {'name': 'Gurugram (Haryana)', 'lat': 28.4595, 'lon': 77.0266},
+        {'name': 'Faridabad (Haryana)', 'lat': 28.4089, 'lon': 77.3178},
+        {'name': 'Panipat (Haryana)', 'lat': 29.3909, 'lon': 76.9635},
+        
+        # Delhi
+        {'name': 'New Delhi (Delhi)', 'lat': 28.6139, 'lon': 77.2090},
+        {'name': 'Dwarka (Delhi)', 'lat': 28.5921, 'lon': 77.0460},
+        {'name': 'Rohini (Delhi)', 'lat': 28.7499, 'lon': 77.0672},
+        
+        # Uttarakhand
         {'name': 'Dehradun (Uttarakhand)', 'lat': 30.3165, 'lon': 78.0322},
-        {'name': 'Bhopal (Madhya Pradesh)', 'lat': 23.2599, 'lon': 77.4126},
-        {'name': 'Raipur (Chhattisgarh)', 'lat': 21.2514, 'lon': 81.6296},
+        {'name': 'Haridwar (Uttarakhand)', 'lat': 29.9457, 'lon': 78.1642},
+        {'name': 'Nainital (Uttarakhand)', 'lat': 29.3803, 'lon': 79.4636},
         
-        # Eastern Region
-        {'name': 'Patna (Bihar)', 'lat': 25.5941, 'lon': 85.1376},
-        {'name': 'Ranchi (Jharkhand)', 'lat': 23.3441, 'lon': 85.3096},
-        {'name': 'Kolkata (West Bengal)', 'lat': 22.5726, 'lon': 88.3639},
-        {'name': 'Gangtok (Sikkim)', 'lat': 27.3389, 'lon': 88.6065},
+        # Uttar Pradesh
+        {'name': 'Lucknow (Uttar Pradesh)', 'lat': 26.8467, 'lon': 80.9462},
+        {'name': 'Agra (Uttar Pradesh)', 'lat': 27.1767, 'lon': 78.0081},
+        {'name': 'Varanasi (Uttar Pradesh)', 'lat': 25.3176, 'lon': 82.9739},
+        {'name': 'Kanpur (Uttar Pradesh)', 'lat': 26.4499, 'lon': 80.3319},
         
-        # North Eastern Region
-        {'name': 'Dispur (Assam)', 'lat': 26.1433, 'lon': 91.7898},
-        {'name': 'Itanagar (Arunachal Pradesh)', 'lat': 27.0844, 'lon': 93.6053},
-        {'name': 'Imphal (Manipur)', 'lat': 24.8170, 'lon': 93.9368},
-        {'name': 'Shillong (Meghalaya)', 'lat': 25.5788, 'lon': 91.8933},
-        {'name': 'Aizawl (Mizoram)', 'lat': 23.7307, 'lon': 92.7173},
-        {'name': 'Kohima (Nagaland)', 'lat': 25.6751, 'lon': 94.1086},
-        {'name': 'Agartala (Tripura)', 'lat': 23.8315, 'lon': 91.2868},
-        
-        # Western Region
-        {'name': 'Gandhi Nagar (Gujarat)', 'lat': 23.2156, 'lon': 72.6369},
-        {'name': 'Mumbai (Maharashtra)', 'lat': 19.0760, 'lon': 72.8777},
-        {'name': 'Panaji (Goa)', 'lat': 15.4909, 'lon': 73.8278},
+        # Rajasthan
         {'name': 'Jaipur (Rajasthan)', 'lat': 26.9124, 'lon': 75.7873},
+        {'name': 'Jodhpur (Rajasthan)', 'lat': 26.2389, 'lon': 73.0243},
+        {'name': 'Udaipur (Rajasthan)', 'lat': 24.5854, 'lon': 73.7125},
+        {'name': 'Jaisalmer (Rajasthan)', 'lat': 26.9157, 'lon': 70.9083},
         
-        # Southern Region
-        {'name': 'Hyderabad (Telangana)', 'lat': 17.3850, 'lon': 78.4867},
-        {'name': 'Amaravati (Andhra Pradesh)', 'lat': 16.5113, 'lon': 80.5154},
+        # Gujarat
+        {'name': 'Gandhinagar (Gujarat)', 'lat': 23.2156, 'lon': 72.6369},
+        {'name': 'Ahmedabad (Gujarat)', 'lat': 23.0225, 'lon': 72.5714},
+        {'name': 'Surat (Gujarat)', 'lat': 21.1702, 'lon': 72.8311},
+        {'name': 'Vadodara (Gujarat)', 'lat': 22.3072, 'lon': 73.1812},
+        
+        # Madhya Pradesh
+        {'name': 'Bhopal (Madhya Pradesh)', 'lat': 23.2599, 'lon': 77.4126},
+        {'name': 'Indore (Madhya Pradesh)', 'lat': 22.7196, 'lon': 75.8577},
+        {'name': 'Gwalior (Madhya Pradesh)', 'lat': 26.2183, 'lon': 78.1828},
+        {'name': 'Ujjain (Madhya Pradesh)', 'lat': 23.1765, 'lon': 75.7885},
+        
+        # Chhattisgarh
+        {'name': 'Raipur (Chhattisgarh)', 'lat': 21.2514, 'lon': 81.6296},
+        {'name': 'Bhilai (Chhattisgarh)', 'lat': 21.2167, 'lon': 81.3833},
+        {'name': 'Bilaspur (Chhattisgarh)', 'lat': 22.0797, 'lon': 82.1409},
+        
+        # Maharashtra
+        {'name': 'Mumbai (Maharashtra)', 'lat': 19.0760, 'lon': 72.8777},
+        {'name': 'Pune (Maharashtra)', 'lat': 18.5204, 'lon': 73.8567},
+        {'name': 'Nagpur (Maharashtra)', 'lat': 21.1458, 'lon': 79.0882},
+        {'name': 'Nashik (Maharashtra)', 'lat': 19.9975, 'lon': 73.7898},
+        
+        # Goa
+        {'name': 'Panaji (Goa)', 'lat': 15.4909, 'lon': 73.8278},
+        {'name': 'Vasco da Gama (Goa)', 'lat': 15.3989, 'lon': 73.8150},
+        {'name': 'Margao (Goa)', 'lat': 15.2708, 'lon': 73.9528},
+        
+        # Karnataka
         {'name': 'Bengaluru (Karnataka)', 'lat': 12.9716, 'lon': 77.5946},
-        {'name': 'Thiruvananthapuram (Kerala)', 'lat': 8.5241, 'lon': 76.9366},
-        {'name': 'Chennai (Tamil Nadu)', 'lat': 13.0827, 'lon': 80.2707},
+        {'name': 'Mysuru (Karnataka)', 'lat': 12.2958, 'lon': 76.6394},
+        {'name': 'Mangaluru (Karnataka)', 'lat': 12.9141, 'lon': 74.8560},
+        {'name': 'Hubballi (Karnataka)', 'lat': 15.3647, 'lon': 75.1240},
         
-        # Union Territories
+        # Telangana
+        {'name': 'Hyderabad (Telangana)', 'lat': 17.3850, 'lon': 78.4867},
+        {'name': 'Warangal (Telangana)', 'lat': 17.9689, 'lon': 79.5941},
+        {'name': 'Nizamabad (Telangana)', 'lat': 18.6725, 'lon': 78.0941},
+        
+        # Andhra Pradesh
+        {'name': 'Amaravati (Andhra Pradesh)', 'lat': 16.5113, 'lon': 80.5154},
+        {'name': 'Visakhapatnam (Andhra Pradesh)', 'lat': 17.6868, 'lon': 83.2185},
+        {'name': 'Vijayawada (Andhra Pradesh)', 'lat': 16.5062, 'lon': 80.6480},
+        {'name': 'Tirupati (Andhra Pradesh)', 'lat': 13.6288, 'lon': 79.4192},
+        
+        # Tamil Nadu
+        {'name': 'Chennai (Tamil Nadu)', 'lat': 13.0827, 'lon': 80.2707},
+        {'name': 'Coimbatore (Tamil Nadu)', 'lat': 11.0168, 'lon': 76.9558},
+        {'name': 'Madurai (Tamil Nadu)', 'lat': 9.9252, 'lon': 78.1198},
+        {'name': 'Tiruchirappalli (Tamil Nadu)', 'lat': 10.7905, 'lon': 78.7047},
+        
+        # Kerala
+        {'name': 'Thiruvananthapuram (Kerala)', 'lat': 8.5241, 'lon': 76.9366},
+        {'name': 'Kochi (Kerala)', 'lat': 9.9312, 'lon': 76.2673},
+        {'name': 'Kozhikode (Kerala)', 'lat': 11.2588, 'lon': 75.7804},
+        {'name': 'Thrissur (Kerala)', 'lat': 10.5276, 'lon': 76.2144},
+        
+        # Bihar
+        {'name': 'Patna (Bihar)', 'lat': 25.5941, 'lon': 85.1376},
+        {'name': 'Gaya (Bihar)', 'lat': 24.7955, 'lon': 84.9994},
+        {'name': 'Bhagalpur (Bihar)', 'lat': 25.2425, 'lon': 86.9842},
+        
+        # Jharkhand
+        {'name': 'Ranchi (Jharkhand)', 'lat': 23.3441, 'lon': 85.3096},
+        {'name': 'Jamshedpur (Jharkhand)', 'lat': 22.8046, 'lon': 86.2029},
+        {'name': 'Dhanbad (Jharkhand)', 'lat': 23.7957, 'lon': 86.4304},
+        
+        # Odisha
+        {'name': 'Bhubaneswar (Odisha)', 'lat': 20.2961, 'lon': 85.8245},
+        {'name': 'Cuttack (Odisha)', 'lat': 20.4625, 'lon': 85.8830},
+        {'name': 'Puri (Odisha)', 'lat': 19.8135, 'lon': 85.8312},
+        
+        # West Bengal
+        {'name': 'Kolkata (West Bengal)', 'lat': 22.5726, 'lon': 88.3639},
+        {'name': 'Howrah (West Bengal)', 'lat': 22.5958, 'lon': 88.2636},
+        {'name': 'Siliguri (West Bengal)', 'lat': 26.7271, 'lon': 88.3953},
+        {'name': 'Darjeeling (West Bengal)', 'lat': 27.0360, 'lon': 88.2627},
+        
+        # Sikkim
+        {'name': 'Gangtok (Sikkim)', 'lat': 27.3389, 'lon': 88.6065},
+        {'name': 'Namchi (Sikkim)', 'lat': 27.1667, 'lon': 88.3667},
+        {'name': 'Pelling (Sikkim)', 'lat': 27.2871, 'lon': 88.2150},
+        
+        # Assam
+        {'name': 'Dispur (Assam)', 'lat': 26.1433, 'lon': 91.7898},
+        {'name': 'Guwahati (Assam)', 'lat': 26.1445, 'lon': 91.7362},
+        {'name': 'Silchar (Assam)', 'lat': 24.8333, 'lon': 92.7789},
+        
+        # Arunachal Pradesh
+        {'name': 'Itanagar (Arunachal Pradesh)', 'lat': 27.0844, 'lon': 93.6053},
+        {'name': 'Tawang (Arunachal Pradesh)', 'lat': 27.5860, 'lon': 91.8590},
+        {'name': 'Ziro (Arunachal Pradesh)', 'lat': 27.5450, 'lon': 93.8317},
+        
+        # Nagaland
+        {'name': 'Kohima (Nagaland)', 'lat': 25.6751, 'lon': 94.1086},
+        {'name': 'Dimapur (Nagaland)', 'lat': 25.9040, 'lon': 93.7267},
+        {'name': 'Mokokchung (Nagaland)', 'lat': 26.3217, 'lon': 94.5203},
+        
+        # Manipur
+        {'name': 'Imphal (Manipur)', 'lat': 24.8170, 'lon': 93.9368},
+        {'name': 'Thoubal (Manipur)', 'lat': 24.6333, 'lon': 93.9833},
+        {'name': 'Bishnupur (Manipur)', 'lat': 24.6000, 'lon': 93.7667},
+        
+        # Mizoram
+        {'name': 'Aizawl (Mizoram)', 'lat': 23.7307, 'lon': 92.7173},
+        {'name': 'Lunglei (Mizoram)', 'lat': 22.8900, 'lon': 92.7347},
+        {'name': 'Champhai (Mizoram)', 'lat': 23.4697, 'lon': 93.3269},
+        
+        # Tripura
+        {'name': 'Agartala (Tripura)', 'lat': 23.8315, 'lon': 91.2868},
+        {'name': 'Udaipur (Tripura)', 'lat': 23.5333, 'lon': 91.4833},
+        {'name': 'Dharmanagar (Tripura)', 'lat': 24.3667, 'lon': 92.1667},
+        
+        # Meghalaya
+        {'name': 'Shillong (Meghalaya)', 'lat': 25.5788, 'lon': 91.8933},
+        {'name': 'Tura (Meghalaya)', 'lat': 25.5138, 'lon': 90.2034},
+        {'name': 'Cherrapunji (Meghalaya)', 'lat': 25.2697, 'lon': 91.7320},
+        
+        # Andaman & Nicobar
         {'name': 'Port Blair (Andaman & Nicobar)', 'lat': 11.6234, 'lon': 92.7265},
-        {'name': 'Kavaratti (Lakshadweep)', 'lat': 10.5593, 'lon': 72.6358},
+        {'name': 'Diglipur (Andaman & Nicobar)', 'lat': 13.2667, 'lon': 93.0000},
+        {'name': 'Car Nicobar (Andaman & Nicobar)', 'lat': 9.1528, 'lon': 92.8194},
+        
+        # Puducherry
         {'name': 'Puducherry (Puducherry)', 'lat': 11.9416, 'lon': 79.8083},
+        {'name': 'Karaikal (Puducherry)', 'lat': 10.9254, 'lon': 79.8380},
+        {'name': 'Mahe (Puducherry)', 'lat': 11.7009, 'lon': 75.5340},
+        
+        # Lakshadweep
+        {'name': 'Kavaratti (Lakshadweep)', 'lat': 10.5593, 'lon': 72.6358},
+        {'name': 'Agatti (Lakshadweep)', 'lat': 10.8482, 'lon': 72.1920},
+        {'name': 'Minicoy (Lakshadweep)', 'lat': 8.2833, 'lon': 73.0500},
+        
+        # Daman & Diu
         {'name': 'Daman (Daman & Diu)', 'lat': 20.3974, 'lon': 72.8328},
-        {'name': 'Silvassa (Dadra & Nagar Haveli)', 'lat': 20.2766, 'lon': 73.0081}
+        {'name': 'Diu (Daman & Diu)', 'lat': 20.7144, 'lon': 70.9882},
+        
+        # Dadra & Nagar Haveli
+        {'name': 'Silvassa (Dadra & Nagar Haveli)', 'lat': 20.2766, 'lon': 73.0081},
+        {'name': 'Dadra (Dadra & Nagar Haveli)', 'lat': 20.2700, 'lon': 73.0150}
     ]
     
     data = []
@@ -366,15 +508,27 @@ def fetch_weather_news(city_keyword: str):
 
         articles = []
         for item in root.findall(".//item"):
+            title_text = item.find("title").text if item.find("title") is not None else ""
+            desc_text = item.find("description").text if item.find("description") is not None else ""
+            url_text = item.find("link").text if item.find("link") is not None else ""
+            pub_date = item.find("pubDate").text if item.find("pubDate") is not None else ""
+            
             articles.append({
-                "title": item.find("title").text,
-                "description": item.find("description").text,
-                "url": item.find("link").text,
-                "published_at": item.find("pubDate").text,
-                "source": "Google News"
+                "title": title_text,
+                "description": desc_text,
+                "url": url_text,
+                "published_at": pub_date,
+                "source": "Google News",
+                "pub_timestamp": pd.to_datetime(pub_date, errors='coerce')
             })
 
-        return {"articles": articles[:10], "error": None}
+        # Sort by publication date (most recent first)
+        articles_df = pd.DataFrame(articles)
+        if not articles_df.empty and 'pub_timestamp' in articles_df.columns:
+            articles_df = articles_df.sort_values('pub_timestamp', ascending=False)
+            articles = articles_df.to_dict('records')
+
+        return {"articles": articles[:15], "error": None}  # Return top 15 most recent
 
     except Exception as e:
         return {"articles": [], "error": f"Exception: {e}"}
@@ -600,24 +754,33 @@ selected_parameter = st.sidebar.selectbox(
     ['temperature', 'air_quality', 'rainfall']
 )
 
-# Set default to current month
+# Set default to current month (or last 2 months of available data)
 from datetime import date as dt_date
 today = dt_date.today()
-first_day_of_month = dt_date(today.year, today.month, 1)
-if today.month == 12:
-    last_day_of_month = dt_date(today.year + 1, 1, 1) - timedelta(days=1)
-else:
-    last_day_of_month = dt_date(today.year, today.month + 1, 1) - timedelta(days=1)
 
-# Ensure dates are within available data range
-default_start = max(pd.Timestamp(first_day_of_month), data['date'].min())
-default_end = min(pd.Timestamp(last_day_of_month), data['date'].max())
+# Calculate current month range
+first_day_current_month = dt_date(today.year, today.month, 1)
+last_day_current_month = today
+
+# Calculate 2 months ago
+if today.month <= 2:
+    first_day_two_months = dt_date(today.year - 1, today.month + 10 if today.month == 1 else 11, 1)
+else:
+    first_day_two_months = dt_date(today.year, today.month - 2, 1)
+
+# Get available data range
+data_start = data['date'].min().date()
+data_end = data['date'].max().date()
+
+# Set defaults within available data
+default_start = max(first_day_two_months, data_start)
+default_end = min(last_day_current_month, data_end)
 
 date_range = st.sidebar.date_input(
     "Select Date Range",
-    [default_start.date(), default_end.date()],
-    min_value=data['date'].min().date(),
-    max_value=data['date'].max().date()
+    [default_start, default_end],
+    min_value=data_start,
+    max_value=data_end
 )
 
 forecast_days = st.sidebar.slider(
@@ -889,25 +1052,47 @@ with tab_data:
 # ------------------------------------------------------------
 with tab_news:
     st.subheader(f"Latest Weather News – {city_keyword}")
+    st.markdown(
+        """
+        <div style="background: #1e293b; padding: 0.75rem 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
+            <small>📅 Showing most recent news articles first (sorted by publication date)</small>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
     st.markdown("<div class='card'>", unsafe_allow_html=True)
 
     if news_error:
-        st.warning(news_error)
+        st.warning(f"⚠️ {news_error}")
     elif not weather_news:
-        st.info("No recent weather-related news articles found for this region.")
+        st.info(f"🔍 No recent weather-related news articles found for {city_keyword}.")
     else:
-        for art in weather_news:
+        for idx, art in enumerate(weather_news, 1):
             published = art["published_at"]
             src = art["source"]
+            
+            # Add visual timestamp indicator
+            time_badge = f"""
+            <span style="background: #3b82f6; padding: 0.2rem 0.5rem; border-radius: 0.25rem; 
+                         font-size: 0.75rem; font-weight: 600;">#{idx} Most Recent</span>
+            """ if idx == 1 else f"""
+            <span style="background: #475569; padding: 0.2rem 0.5rem; border-radius: 0.25rem; 
+                         font-size: 0.75rem;">#{idx}</span>
+            """
 
             st.markdown(
                 f"""
                 <div class="news-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <div class="news-meta">{src} · {published}</div>
+                        {time_badge}
+                    </div>
                     <div class="news-title">{art['title']}</div>
-                    <div class="news-meta">{src} · {published}</div>
                     <div class="news-desc">{art['description'] or ""}</div>
-                    <div style="margin-top:0.4rem;">
-                        <a href="{art['url']}" target="_blank" style="color: #3b82f6;">Read full article ↗</a>
+                    <div style="margin-top:0.5rem;">
+                        <a href="{art['url']}" target="_blank" style="color: #3b82f6; text-decoration: none; font-weight: 500;">
+                            📰 Read full article ↗
+                        </a>
                     </div>
                 </div>
                 """,
