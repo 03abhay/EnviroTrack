@@ -1064,43 +1064,57 @@ with tab_news:
     elif not weather_news:
         st.info(f"🔍 No recent weather-related news articles found for {city_keyword}.")
     else:
+        import re
+        import html
+        
         for idx, art in enumerate(weather_news, 1):
             published = art["published_at"]
             src = art["source"]
-            title = art['title']
-            description = art['description'] or "No description available"
-            url = art['url']
+            title = art.get('title', 'No title')
+            description = art.get('description', '')
+            url = art.get('url', '#')
+            
+            # Clean title - remove HTML tags and decode entities
+            title_clean = html.unescape(re.sub('<[^<]+?>', '', title))
+            
+            # Clean description - remove all HTML/CSS and decode entities
+            if description:
+                # Remove all HTML tags
+                description_clean = re.sub('<[^<]+?>', '', description)
+                # Decode HTML entities
+                description_clean = html.unescape(description_clean)
+                # Remove extra whitespace
+                description_clean = ' '.join(description_clean.split())
+                # Limit length
+                if len(description_clean) > 250:
+                    description_clean = description_clean[:250] + "..."
+            else:
+                description_clean = "Click to read the full article"
             
             # Add visual timestamp indicator
             if idx == 1:
-                time_badge = """
-                <span style="background: #3b82f6; padding: 0.2rem 0.5rem; border-radius: 0.25rem; 
-                             font-size: 0.75rem; font-weight: 600;">#1 Most Recent</span>
-                """
+                time_badge = '<span style="background: #3b82f6; padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 600;">#1 Most Recent</span>'
             else:
-                time_badge = f"""
-                <span style="background: #475569; padding: 0.2rem 0.5rem; border-radius: 0.25rem; 
-                             font-size: 0.75rem;">#{idx}</span>
-                """
+                time_badge = f'<span style="background: #475569; padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem;">#{idx}</span>'
 
-            # Clean up description - remove HTML tags if present
-            import re
-            description_clean = re.sub('<[^<]+?>', '', description)
-
+            # Use st.markdown for the card
             st.markdown(
                 f"""
-                <div class="news-card">
+                <div style="border-radius: 0.75rem; padding: 0.9rem 1.1rem; margin-bottom: 0.8rem; 
+                     background: #020617; border: 1px solid #1f2937; transition: all 0.3s ease;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                        <div class="news-meta">{src} · {published}</div>
+                        <div style="font-size: 0.78rem; color: #9ca3af;">{src} · {published}</div>
                         {time_badge}
                     </div>
-                    <div class="news-title">{title}</div>
-                    <div class="news-desc">{description_clean}</div>
-                    <div style="margin-top:0.5rem;">
-                        <a href="{url}" target="_blank" style="color: #3b82f6; text-decoration: none; font-weight: 500;">
-                            📰 Read full article ↗
-                        </a>
+                    <div style="font-weight: 600; font-size: 0.98rem; color: #e5e7eb; margin-bottom: 0.4rem;">
+                        {title_clean}
                     </div>
+                    <div style="font-size: 0.9rem; color: #d1d5db; margin-bottom: 0.5rem;">
+                        {description_clean}
+                    </div>
+                    <a href="{url}" target="_blank" style="color: #3b82f6; text-decoration: none; font-weight: 500; font-size: 0.9rem;">
+                        📰 Read full article ↗
+                    </a>
                 </div>
                 """,
                 unsafe_allow_html=True
