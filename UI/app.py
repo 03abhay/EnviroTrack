@@ -8,7 +8,6 @@ from prophet import Prophet
 import folium
 from streamlit_folium import folium_static
 import requests
-import requests
 import xml.etree.ElementTree as ET
 
 
@@ -18,17 +17,28 @@ import xml.etree.ElementTree as ET
 st.set_page_config(
     page_title="Environmental Monitoring Dashboard - Indian State Capitals",
     page_icon="🌍",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-
+# Set dark theme
+st.markdown("""
+    <script>
+    window.parent.document.documentElement.setAttribute('data-theme', 'dark');
+    </script>
+""", unsafe_allow_html=True)
 
 # ------------------------------------------------------------
-# Basic CSS for nicer UI
+# Enhanced CSS with animations
 # ------------------------------------------------------------
 st.markdown(
     """
     <style>
+    /* Force dark theme */
+    :root {
+        color-scheme: dark;
+    }
+    
     .main {
         background-color: #0b1120;
         color: #e5e7eb;
@@ -56,6 +66,7 @@ st.markdown(
         border: 1px solid #1e293b;
     }
 
+    /* Alert bar with pulse animation for high severity */
     .alert-bar {
         border-radius: 0.75rem;
         padding: 0.9rem 1.1rem;
@@ -66,11 +77,73 @@ st.markdown(
         display: flex;
         align-items: center;
         gap: 0.6rem;
+        transition: all 0.3s ease;
     }
+    
+    .alert-bar.high-severity {
+        animation: pulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+        }
+        50% {
+            box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+        }
+    }
+    
     .alert-icon {
         font-size: 1.2rem;
+        animation: float 3s ease-in-out infinite;
     }
+    
+    @keyframes float {
+        0%, 100% {
+            transform: translateY(0px);
+        }
+        50% {
+            transform: translateY(-5px);
+        }
+    }
+    
     .alert-text {
+        flex: 1;
+    }
+
+    /* Legend card styles */
+    .legend-card {
+        border-radius: 0.75rem;
+        padding: 1rem;
+        background: #020617;
+        border: 1px solid #1f2937;
+        margin-bottom: 1rem;
+    }
+    
+    .legend-title {
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: #f9fafb;
+        margin-bottom: 0.75rem;
+    }
+    
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+        font-size: 0.85rem;
+    }
+    
+    .legend-color {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 2px solid #374151;
+    }
+    
+    .legend-range {
+        color: #9ca3af;
         flex: 1;
     }
 
@@ -80,7 +153,15 @@ st.markdown(
         margin-bottom: 0.8rem;
         background: #020617;
         border: 1px solid #1f2937;
+        transition: all 0.3s ease;
     }
+    
+    .news-card:hover {
+        border-color: #3b82f6;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+        transform: translateY(-2px);
+    }
+    
     .news-title {
         font-weight: 600;
         font-size: 0.98rem;
@@ -104,6 +185,27 @@ st.markdown(
     }
     .footer b {
         color: #e5e7eb;
+    }
+    
+    /* Streamlit element overrides for dark theme */
+    .stSelectbox > div > div {
+        background-color: #1e293b;
+        color: #e5e7eb;
+    }
+    
+    .stDateInput > div > div {
+        background-color: #1e293b;
+        color: #e5e7eb;
+    }
+    
+    /* Glowing effect for interactive elements */
+    .stButton > button {
+        transition: all 0.3s ease;
+    }
+    
+    .stButton > button:hover {
+        box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+        transform: translateY(-2px);
     }
     </style>
     """,
@@ -206,6 +308,27 @@ def load_sample_data():
     return df
 
 # ------------------------------------------------------------
+# Severity Assessment Function
+# ------------------------------------------------------------
+def assess_severity(temp, rain, aqi):
+    """Returns 'normal', 'warning', or 'severe'"""
+    if temp >= 42 or rain >= 80 or aqi >= 300:
+        return 'severe'
+    elif temp >= 38 or temp <= 5 or rain >= 30 or aqi >= 200:
+        return 'warning'
+    else:
+        return 'normal'
+
+def get_marker_color(severity):
+    """Returns color code for map markers"""
+    if severity == 'severe':
+        return 'red'
+    elif severity == 'warning':
+        return 'orange'
+    else:
+        return 'green'
+
+# ------------------------------------------------------------
 # Forecast Helper
 # ------------------------------------------------------------
 @st.cache_data(show_spinner=False)
@@ -221,7 +344,6 @@ def create_forecast(df, parameter, days=30):
 # Helper: Extract city name for news queries
 # ------------------------------------------------------------
 def extract_city_keyword(location_name: str) -> str:
-    # e.g. "New Delhi (Delhi)" -> "New Delhi"
     if "(" in location_name:
         return location_name.split("(")[0].strip()
     return location_name.strip()
@@ -229,14 +351,9 @@ def extract_city_keyword(location_name: str) -> str:
 # ------------------------------------------------------------
 # Weather News API integration
 # ------------------------------------------------------------
-
-
 @st.cache_data(ttl=1800, show_spinner=False)
 def fetch_weather_news(city_keyword: str):
-    """
-    Fetch latest weather-related news using Google News RSS.
-    NO API key required.
-    """
+    """Fetch latest weather-related news using Google News RSS."""
     query = f"{city_keyword} weather OR rainfall OR storm OR cyclone OR heatwave"
     url = f"https://news.google.com/rss/search?q={query.replace(' ', '+')}"
 
@@ -266,17 +383,13 @@ def fetch_weather_news(city_keyword: str):
 # Alert / Warning Logic
 # ------------------------------------------------------------
 def get_alert_status(current_row, news_articles=None):
-    """
-    Decide alert severity + text based on:
-    - Latest temp / rainfall / AQI
-    - Recent severe weather news headlines for this location (if available)
-    """
+    """Decide alert severity + text based on metrics and news"""
     temp = current_row["temperature"]
     rain = current_row["rainfall"]
     aqi = current_row["air_quality"]
 
     messages = []
-    severity = "normal"   # normal < medium < high
+    severity = "normal"
     icon = "🟢"
     sev_order = ["normal", "medium", "high"]
 
@@ -348,9 +461,7 @@ def get_alert_status(current_row, news_articles=None):
             if icon == "🟢":
                 icon = "📰"
 
-            messages.append(
-                f"News alert: {flagged_article['title']}"
-            )
+            messages.append(f"News alert: {flagged_article['title']}")
 
     # If no issues at all
     if not messages:
@@ -369,19 +480,102 @@ def get_alert_status(current_row, news_articles=None):
         bg = "#022c22"
         border = "#bbf7d0"
 
-    return icon, messages, bg, border
+    return icon, messages, bg, border, severity
 
 def render_alert_bar(current_row, location_name, news_articles=None):
-    icon, messages, bg, border = get_alert_status(current_row, news_articles=news_articles)
+    icon, messages, bg, border, severity = get_alert_status(current_row, news_articles=news_articles)
     msg_html = "<br>".join(messages)
+    
+    severity_class = "high-severity" if severity == "high" else ""
 
     st.markdown(
         f"""
-        <div class="alert-bar" style="background:{bg}; border:1px solid {border};">
+        <div class="alert-bar {severity_class}" style="background:{bg}; border:1px solid {border};">
             <div class="alert-icon">{icon}</div>
             <div class="alert-text">
                 <b>Alert Status for {location_name}</b><br>
                 {msg_html}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+# ------------------------------------------------------------
+# Legend Components
+# ------------------------------------------------------------
+def render_aqi_legend():
+    st.markdown(
+        """
+        <div class="legend-card">
+            <div class="legend-title">📊 Air Quality Index (AQI) Scale</div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #10b981;"></div>
+                <span class="legend-range"><b>0-50:</b> Good</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #fbbf24;"></div>
+                <span class="legend-range"><b>51-100:</b> Moderate</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #f97316;"></div>
+                <span class="legend-range"><b>101-200:</b> Unhealthy for Sensitive Groups</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #ef4444;"></div>
+                <span class="legend-range"><b>201-300:</b> Very Unhealthy</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #991b1b;"></div>
+                <span class="legend-range"><b>300+:</b> Hazardous</span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+def render_temp_legend():
+    st.markdown(
+        """
+        <div class="legend-card">
+            <div class="legend-title">🌡️ Temperature Thresholds</div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #3b82f6;"></div>
+                <span class="legend-range"><b>&lt;5°C:</b> Cold Wave Alert</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #10b981;"></div>
+                <span class="legend-range"><b>5-38°C:</b> Normal Range</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #f97316;"></div>
+                <span class="legend-range"><b>38-42°C:</b> High Temperature</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #ef4444;"></div>
+                <span class="legend-range"><b>42°C+:</b> Heatwave Conditions</span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+def render_map_legend():
+    st.markdown(
+        """
+        <div class="legend-card">
+            <div class="legend-title">🗺️ Map Marker Legend</div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #10b981;"></div>
+                <span class="legend-range"><b>Green:</b> Normal conditions</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #f97316;"></div>
+                <span class="legend-range"><b>Orange:</b> Warning level</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #ef4444;"></div>
+                <span class="legend-range"><b>Red:</b> Severe conditions</span>
             </div>
         </div>
         """,
@@ -419,6 +613,9 @@ forecast_days = st.sidebar.slider(
     step=7
 )
 
+st.sidebar.markdown("---")
+render_map_legend()
+
 st.sidebar.markdown(
     """
     ---
@@ -451,7 +648,7 @@ news_error = news_data["error"]
 render_alert_bar(current_data, selected_location, news_articles=weather_news)
 
 # ============================================================
-# Layout Tabs (added Weather News tab)
+# Layout Tabs
 # ============================================================
 tab_overview, tab_trend, tab_data, tab_news = st.tabs(
     ["🌐 Overview", "📈 Trends & Forecast", "📊 Raw Data", "📰 Weather News"]
@@ -470,21 +667,33 @@ with tab_overview:
         m = folium.Map(
             location=[20.5937, 78.9629],
             zoom_start=4,
-            tiles="CartoDB positron"
+            tiles="CartoDB dark_matter"  # Dark theme map
         )
 
         latest_per_loc = data.sort_values("date").groupby("location").tail(1)
         for _, row in latest_per_loc.iterrows():
+            # Assess severity for color coding
+            severity = assess_severity(row['temperature'], row['rainfall'], row['air_quality'])
+            marker_color = get_marker_color(severity)
+            
             popup_text = (
                 f"<b>{row['location']}</b><br>"
+                f"Status: <b style='color:{marker_color}'>{severity.upper()}</b><br>"
                 f"Temp: {row['temperature']}°C<br>"
                 f"AQI: {row['air_quality']}<br>"
                 f"Rainfall: {row['rainfall']} mm"
             )
-            folium.Marker(
-                [row['lat'], row['lon']],
+            
+            folium.CircleMarker(
+                location=[row['lat'], row['lon']],
+                radius=8,
                 popup=popup_text,
-                tooltip=row['location']
+                tooltip=row['location'],
+                color=marker_color,
+                fill=True,
+                fillColor=marker_color,
+                fillOpacity=0.7,
+                weight=2
             ).add_to(m)
 
         folium_static(m, width=700, height=400)
@@ -530,6 +739,10 @@ with tab_overview:
         )
 
         st.markdown("</div>", unsafe_allow_html=True)
+        
+        # Add legends
+        render_aqi_legend()
+        render_temp_legend()
 
 # ------------------------------------------------------------
 # TREND & FORECAST TAB
@@ -551,7 +764,12 @@ with tab_trend:
         title=f"{selected_parameter.title()} Trend ({selected_location})",
         labels={'date': 'Date', selected_parameter: selected_parameter.title()}
     )
-    fig.update_layout(margin=dict(l=10, r=10, t=40, b=10))
+    fig.update_layout(
+        margin=dict(l=10, r=10, t=40, b=10),
+        template='plotly_dark',
+        hovermode='x unified'
+    )
+    fig.update_traces(line=dict(width=3))
     st.plotly_chart(fig, use_container_width=True)
 
     st.markdown("### Forecast")
@@ -570,7 +788,8 @@ with tab_trend:
                 x=loc_data_all['date'],
                 y=loc_data_all[selected_parameter],
                 name='Actual',
-                mode='lines'
+                mode='lines',
+                line=dict(width=3, color='#3b82f6')
             ))
 
             fig_fc.add_trace(go.Scatter(
@@ -578,7 +797,7 @@ with tab_trend:
                 y=forecast['yhat'],
                 name='Forecast',
                 mode='lines',
-                line=dict(dash='dash')
+                line=dict(dash='dash', width=3, color='#10b981')
             ))
 
             fig_fc.add_trace(go.Scatter(
@@ -587,15 +806,18 @@ with tab_trend:
                 name='Upper Bound',
                 mode='lines',
                 line=dict(width=0),
-                showlegend=False
+                showlegend=False,
+                hoverinfo='skip'
             ))
 
             fig_fc.add_trace(go.Scatter(
                 x=forecast['ds'],
                 y=forecast['yhat_lower'],
-                name='Lower Bound',
+                name='Confidence Interval',
                 mode='lines',
                 fill='tonexty',
+                fillcolor='rgba(16, 185, 129, 0.2)',
+                line=dict(width=0),
                 showlegend=True
             ))
 
@@ -603,7 +825,9 @@ with tab_trend:
                 title=f"{selected_parameter.title()} Forecast – {selected_location}",
                 xaxis_title="Date",
                 yaxis_title=selected_parameter.title(),
-                margin=dict(l=10, r=10, t=40, b=10)
+                margin=dict(l=10, r=10, t=40, b=10),
+                template='plotly_dark',
+                hovermode='x unified'
             )
 
             st.plotly_chart(fig_fc, use_container_width=True)
@@ -648,7 +872,7 @@ with tab_news:
                     <div class="news-meta">{src} · {published}</div>
                     <div class="news-desc">{art['description'] or ""}</div>
                     <div style="margin-top:0.4rem;">
-                        <a href="{art['url']}" target="_blank">Read full article ↗</a>
+                        <a href="{art['url']}" target="_blank" style="color: #3b82f6;">Read full article ↗</a>
                     </div>
                 </div>
                 """,
@@ -658,7 +882,7 @@ with tab_news:
     st.markdown("</div>", unsafe_allow_html=True)
 
 # ============================================================
-# FOOTER (Same style as InvestIQ, adapted)
+# FOOTER
 # ============================================================
 st.markdown("---")
 st.markdown(
