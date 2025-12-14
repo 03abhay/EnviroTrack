@@ -217,7 +217,10 @@ st.markdown(
 # ============================================================
 @st.cache_data(show_spinner=False)
 def load_sample_data():
-    dates = pd.date_range(start='2023-01-01', end='2024-01-01', freq='D')
+    # Generate data for last 60 days from today
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=60)
+    dates = pd.date_range(start=start_date, end=end_date, freq='D')
     locations = [
         # Jammu & Kashmir (including PoK - Muzaffarabad as integral part)
         {'name': 'Srinagar (Jammu & Kashmir)', 'lat': 34.0837, 'lon': 74.7973},
@@ -754,33 +757,15 @@ selected_parameter = st.sidebar.selectbox(
     ['temperature', 'air_quality', 'rainfall']
 )
 
-# Set default to current month (or last 2 months of available data)
-from datetime import date as dt_date
-today = dt_date.today()
-
-# Calculate current month range
-first_day_current_month = dt_date(today.year, today.month, 1)
-last_day_current_month = today
-
-# Calculate 2 months ago
-if today.month <= 2:
-    first_day_two_months = dt_date(today.year - 1, today.month + 10 if today.month == 1 else 11, 1)
-else:
-    first_day_two_months = dt_date(today.year, today.month - 2, 1)
-
-# Get available data range
-data_start = data['date'].min().date()
-data_end = data['date'].max().date()
-
-# Set defaults within available data
-default_start = max(first_day_two_months, data_start)
-default_end = min(last_day_current_month, data_end)
+# Set default date range to last 60 days
+data_end = data['date'].max()
+data_start = data['date'].min()
 
 date_range = st.sidebar.date_input(
     "Select Date Range",
-    [default_start, default_end],
-    min_value=data_start,
-    max_value=data_end
+    [data_start.date(), data_end.date()],
+    min_value=data_start.date(),
+    max_value=data_end.date()
 )
 
 forecast_days = st.sidebar.slider(
@@ -949,26 +934,38 @@ with tab_trend:
     st.subheader(f"{selected_parameter.title()} – Trend & Forecast for {selected_location}")
     st.markdown("<div class='card'>", unsafe_allow_html=True)
 
+    # Handle date_range properly - ensure it's a tuple/list with 2 dates
+    if isinstance(date_range, (list, tuple)) and len(date_range) == 2:
+        start_date = pd.Timestamp(date_range[0])
+        end_date = pd.Timestamp(date_range[1])
+    else:
+        # Fallback to all data if date_range is invalid
+        start_date = data['date'].min()
+        end_date = data['date'].max()
+
     filtered_data = data[
         (data['location'] == selected_location) &
-        (data['date'] >= pd.Timestamp(date_range[0])) &
-        (data['date'] <= pd.Timestamp(date_range[1]))
+        (data['date'] >= start_date) &
+        (data['date'] <= end_date)
     ]
 
-    fig = px.line(
-        filtered_data,
-        x='date',
-        y=selected_parameter,
-        title=f"{selected_parameter.title()} Trend ({selected_location})",
-        labels={'date': 'Date', selected_parameter: selected_parameter.title()}
-    )
-    fig.update_layout(
-        margin=dict(l=10, r=10, t=40, b=10),
-        template='plotly_dark',
-        hovermode='x unified'
-    )
-    fig.update_traces(line=dict(width=3))
-    st.plotly_chart(fig, use_container_width=True)
+    if filtered_data.empty:
+        st.warning("⚠️ No data available for the selected date range. Please adjust your selection.")
+    else:
+        fig = px.line(
+            filtered_data,
+            x='date',
+            y=selected_parameter,
+            title=f"{selected_parameter.title()} Trend ({selected_location})",
+            labels={'date': 'Date', selected_parameter: selected_parameter.title()}
+        )
+        fig.update_layout(
+            margin=dict(l=10, r=10, t=40, b=10),
+            template='plotly_dark',
+            hovermode='x unified'
+        )
+        fig.update_traces(line=dict(width=3))
+        st.plotly_chart(fig, use_container_width=True)
 
     st.markdown("### Forecast")
     st.write(
@@ -1070,15 +1067,25 @@ with tab_news:
         for idx, art in enumerate(weather_news, 1):
             published = art["published_at"]
             src = art["source"]
+            title = art['title']
+            description = art['description'] or "No description available"
+            url = art['url']
             
             # Add visual timestamp indicator
-            time_badge = f"""
-            <span style="background: #3b82f6; padding: 0.2rem 0.5rem; border-radius: 0.25rem; 
-                         font-size: 0.75rem; font-weight: 600;">#{idx} Most Recent</span>
-            """ if idx == 1 else f"""
-            <span style="background: #475569; padding: 0.2rem 0.5rem; border-radius: 0.25rem; 
-                         font-size: 0.75rem;">#{idx}</span>
-            """
+            if idx == 1:
+                time_badge = """
+                <span style="background: #3b82f6; padding: 0.2rem 0.5rem; border-radius: 0.25rem; 
+                             font-size: 0.75rem; font-weight: 600;">#1 Most Recent</span>
+                """
+            else:
+                time_badge = f"""
+                <span style="background: #475569; padding: 0.2rem 0.5rem; border-radius: 0.25rem; 
+                             font-size: 0.75rem;">#{idx}</span>
+                """
+
+            # Clean up description - remove HTML tags if present
+            import re
+            description_clean = re.sub('<[^<]+?>', '', description)
 
             st.markdown(
                 f"""
@@ -1087,10 +1094,10 @@ with tab_news:
                         <div class="news-meta">{src} · {published}</div>
                         {time_badge}
                     </div>
-                    <div class="news-title">{art['title']}</div>
-                    <div class="news-desc">{art['description'] or ""}</div>
+                    <div class="news-title">{title}</div>
+                    <div class="news-desc">{description_clean}</div>
                     <div style="margin-top:0.5rem;">
-                        <a href="{art['url']}" target="_blank" style="color: #3b82f6; text-decoration: none; font-weight: 500;">
+                        <a href="{url}" target="_blank" style="color: #3b82f6; text-decoration: none; font-weight: 500;">
                             📰 Read full article ↗
                         </a>
                     </div>
